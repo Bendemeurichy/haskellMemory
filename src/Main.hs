@@ -2,7 +2,7 @@ import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
 import System.Random
-import System.Random.Shuffle (shuffle')
+import System.Random.Shuffle (shuffle', shuffle)
 
 import Data.Fixed (mod')
 
@@ -18,7 +18,8 @@ type Coordinate = (Int, Int)
 
 -- Representatie van een kaart. Een kaart heeft een status, 
 -- een kleur en een positie.
-type Card = (Coordinate, Color, CardStatus)
+data Card = Card {cardcoord :: Coordinate, cardcolor::Color, cardstatus::CardStatus}
+
 
 -- Representatie van het speelveld.
 data Board = Board {
@@ -84,31 +85,32 @@ initBoard = Board {
 
 -- De mogelijke richtingen van de selector.
 left, right, up, down :: Direction
-left  = undefined
-right = undefined
-up    = undefined
-down  = undefined
+left  = (-1, 0)
+right = (1, 0)   
+up    = (0, 1)
+down  = (0, -1)
 
 -- Controleer of twee kaarten dezelfde kleur hebben.
 match :: Card -> Card -> Bool
-match card1 card2 = undefined
+match card1 card2 = cardcolor card1 == cardcolor card2
 
 -- Zoek een kaart binnen een lijst van kaarten op basis van een positie.
 -- Wanneer een kaart gevonden is, wordt deze teruggegeven. Anders wordt
 -- een error teruggegeven.
 find :: Coordinate -> [Card] -> Card
-find target cards = undefined
+find target cards = let a = [card | card <- cards, cardcoord card == target] in if length a == 1 then head a else error "Card not found"
 
 -- Geef een permutatie van een gegeven lijst terug.
 -- Hint: Kijk zeker eens naar de System.Random en 
 --       System.Random.Shuffle bibliotheken.
 shuffleList :: [a] -> [a]
-shuffleList l = undefined
+shuffleList l = shuffle' l (length l) (mkStdGen seed)
 
 -- Genereer een lijst met n verschillende kleuren.
 -- Hint: Je kan gebruikmaken van de generateColor-functie.
 generateColors :: Int -> [Color]
-generateColors n = undefined
+--generateColors n = [generateColor (fst(randomR (0,360) (mkStdGen seed))) | _ <- [1..n]]
+generateColors n = [generateColor i | i <- take n (randomRs (0, 360) (mkStdGen seed))]
 
 -- Genereer een lijst van n kaarten (n/2 kleurenparen).
 generateShuffledCards :: Int -> [Card]
