@@ -18,7 +18,7 @@ type Coordinate = (Int, Int)
 
 -- Representatie van een kaart. Een kaart heeft een status, 
 -- een kleur en een positie.
-data Card = Card {cardcoord :: Coordinate, cardcolor::Color, cardstatus::CardStatus}
+type Card = ( Coordinate, Color, CardStatus)
 
 
 -- Representatie van het speelveld.
@@ -92,13 +92,13 @@ down  = (0, -1)
 
 -- Controleer of twee kaarten dezelfde kleur hebben.
 match :: Card -> Card -> Bool
-match card1 card2 = cardcolor card1 == cardcolor card2
+match (_,c1,_) (_,c2,_) = c1 == c2
 
 -- Zoek een kaart binnen een lijst van kaarten op basis van een positie.
 -- Wanneer een kaart gevonden is, wordt deze teruggegeven. Anders wordt
 -- een error teruggegeven.
 find :: Coordinate -> [Card] -> Card
-find target cards = let a = [card | card <- cards, cardcoord card == target] in if length a == 1 then head a else error "Card not found"
+find target cards = let a = [(coord,col,stat) | (coord,col,stat) <- cards,  coord == target] in if length a == 1 then head a else error "Card not found"
 
 -- Geef een permutatie van een gegeven lijst terug.
 -- Hint: Kijk zeker eens naar de System.Random en 
@@ -110,20 +110,21 @@ shuffleList l = shuffle' l (length l) (mkStdGen seed)
 -- Hint: Je kan gebruikmaken van de generateColor-functie.
 generateColors :: Int -> [Color]
 --generateColors n = [generateColor (fst(randomR (0,360) (mkStdGen seed))) | _ <- [1..n]]
-generateColors n = [generateColor i | i <- take n (randomRs (0, 360) (mkStdGen seed))]
+generateColors n = [generateColor i| i <- take n (randomRs (0, 360) (mkStdGen seed))]
 
 -- Genereer een lijst van n kaarten (n/2 kleurenparen).
 generateShuffledCards :: Int -> [Card]
-generateShuffledCards n = undefined
+generateShuffledCards n = shuffleList [((1,1), generateColors (div n 2) !! div i 2, Hidden) |i<-[0..n-1]]
 
 -- Controleer of een positie op het spelbord een kaart bevat.
 hasCard :: Coordinate -> Bool
-hasCard (x, y) = undefined
+--check if cards initBoard contains a card on the given coordinate
+hasCard (x,y) = (x,y) `elem` [coord | (coord,_,_) <- cards initBoard]
 
 -- Controleer of de selector vanaf een gegeven locatie in een 
 -- gegeven richting kan bewegen.
 canMove :: Coordinate -> Direction -> Bool
-canMove coord direction = undefined
+canMove (c1,c2) (d1,d2) =hasCard (c1 + d1, c2 + d2)
 
 -- Beweeg de selector in een gegeven richting.
 move :: Board -> Direction -> Board
