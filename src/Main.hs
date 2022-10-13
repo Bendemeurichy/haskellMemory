@@ -20,6 +20,14 @@ type Coordinate = (Int, Int)
 -- een kleur en een positie.
 type Card = ( Coordinate, Color, CardStatus)
 
+getCoord :: Card -> Coordinate
+getCoord (c,_,_) = c
+
+getColor :: Card -> Color
+getColor (_,c,_) = c
+
+getStatus :: Card -> CardStatus
+getStatus (_,_,s) = s
 
 -- Representatie van het speelveld.
 data Board = Board {
@@ -86,19 +94,22 @@ initBoard = Board {
 -- De mogelijke richtingen van de selector.
 left, right, up, down :: Direction
 left  = (-1, 0)
-right = (1, 0)   
+right = (1, 0)
 up    = (0, 1)
 down  = (0, -1)
 
 -- Controleer of twee kaarten dezelfde kleur hebben.
 match :: Card -> Card -> Bool
-match (_,c1,_) (_,c2,_) = c1 == c2
+match card1 card2 = getColor card1 == getColor card2
 
 -- Zoek een kaart binnen een lijst van kaarten op basis van een positie.
 -- Wanneer een kaart gevonden is, wordt deze teruggegeven. Anders wordt
 -- een error teruggegeven.
 find :: Coordinate -> [Card] -> Card
-find target cards = let a = [(coord,col,stat) | (coord,col,stat) <- cards,  coord == target] in if length a == 1 then head a else error "Card not found"
+find target cards
+    | length a == 1 =head a
+    | otherwise = error "Card not found"
+    where a = [card | card@(coord,col,stat) <- cards,  coord == target]
 
 -- Geef een permutatie van een gegeven lijst terug.
 -- Hint: Kijk zeker eens naar de System.Random en 
@@ -109,12 +120,12 @@ shuffleList l = shuffle' l (length l) (mkStdGen seed)
 -- Genereer een lijst met n verschillende kleuren.
 -- Hint: Je kan gebruikmaken van de generateColor-functie.
 generateColors :: Int -> [Color]
---generateColors n = [generateColor (fst(randomR (0,360) (mkStdGen seed))) | _ <- [1..n]]
 generateColors n = [generateColor i| i <- take n (randomRs (0, 360) (mkStdGen seed))]
 
 -- Genereer een lijst van n kaarten (n/2 kleurenparen).
+--TODO: coordinaten moeten nog mooi ingevuld worden na shuffle
 generateShuffledCards :: Int -> [Card]
-generateShuffledCards n = shuffleList [((1,1), generateColors (div n 2) !! div i 2, Hidden) |i<-[0..n-1]]
+generateShuffledCards n = shuffleList [((0,0), generateColors (div n 2) !! div i 2, Hidden) |i<-[0..n-1]]
 
 -- Controleer of een positie op het spelbord een kaart bevat.
 hasCard :: Coordinate -> Bool
@@ -124,49 +135,61 @@ hasCard (x,y) = (x,y) `elem` [coord | (coord,_,_) <- cards initBoard]
 -- Controleer of de selector vanaf een gegeven locatie in een 
 -- gegeven richting kan bewegen.
 canMove :: Coordinate -> Direction -> Bool
-canMove (c1,c2) (d1,d2) =hasCard (c1 + d1, c2 + d2)
+canMove coord direction =hasCard (addcoord coord direction)
 
 -- Beweeg de selector in een gegeven richting.
 move :: Board -> Direction -> Board
-move board direction = undefined
+move board direction = board {selector = addcoord direction (selector board) }
+
+--functie die coordinaten samenvoegt of 
+addcoord :: Coordinate -> Coordinate -> Coordinate
+addcoord (cx1,cy1) (cx2,cy2)=(cx1 + cx2, cy1 + cy2)
 
 -- Verander de status van een kaart op een gegeven positie 
 -- wanneer de posities overeenkomen.
 changeCard :: Coordinate -> CardStatus -> Card -> Card
-changeCard c s card = undefined
+changeCard c s card
+    | c == getCoord card = (getCoord card, getColor card, s)
+    |otherwise =  card
 
 -- Verander de status van een enkele kaart in een reeks van 
 -- kaarten. Deze functie geeft een lijst terug waar de status 
 -- van de kaart is aangepast naar `Shown`.
 showCard :: Coordinate -> [Card] -> [Card]
-showCard target = undefined
+showCard target = map (changeCard target Shown )
 
 -- Verander de status van een enkele kaart in een reeks van 
 -- kaarten. Deze functie geeft een lijst terug waar de status 
 -- van de kaart is aangepast naar `Hidden`.
 hideCard :: Coordinate -> [Card] -> [Card]
-hideCard target = undefined
+hideCard target = map (changeCard target Hidden)
 
 -- Draai de kaart op een gegeven positie op het bord om 
 -- als deze nog niet eerder werd omgedraaid.
 flipCard :: Coordinate -> Board -> Board
-flipCard target board = undefined
+flipCard target board
+    | target `elem` [coord | (coord,_,_) <- turned board]  = board
+    | otherwise = board {cards = showCard target (cards board), turned = turned board ++ [find target (cards board)]}
 
 -- Reset de laatste omgedraaide kaarten terug naar de `Hidden` status.
 resetTurned :: Board -> Board
-resetTurned board = undefined
+resetTurned board =let last2= drop (length(turned board) -2) (turned board) in
+    board{cards = hideCard (getCoord (last last2)) (hideCard (getCoord (head last2)) (cards board)) ,
+    turned= []}
 
 -- Bereken het volgende bord op basis van de omgedraaide kaarten.
 -- Hint: We hebben de drie gevallen voor deze functie al voorzien.
-nextBoard :: Board -> Board 
-nextBoard b@Board{ turned = [] }         = undefined
-nextBoard b@Board{ turned = [c1] }       = undefined
-nextBoard b@Board{ turned = [c1, c2] }   = undefined
+nextBoard :: Board -> Board
+nextBoard b@Board{ turned = [] }         = b
+nextBoard b@Board{ turned = [c1] }       = b
+nextBoard b@Board{ turned = [c1, c2] }
+                    | c1 `match` c2 = b{turned = []}
+                    | otherwise = resetTurned b
 
 -- Zet een positie op het bord om naar een positie op het scherm.
 -- Hint: hou zeker rekening met het coordinatensysteem van Gloss.
 convert :: Int -> Int -> Float
-convert location axis = undefined
+convert location axis =  fromIntegral location * (fromIntegral axis / fromIntegral amountOfCards) + (fromIntegral (2*cardInset + scaling)/2)
 
 -- Render een vierkant met een gegeven kleur en grootte.
 renderColoredSquare :: Int -> Color -> Picture
@@ -174,11 +197,11 @@ renderColoredSquare size c = undefined
 
 -- Render de selector.
 renderSelector :: Coordinate -> Picture
-renderSelector coord = undefined
+renderSelector coord = blank
 
 -- Render een kaart.
 renderCard :: Card -> Picture
-renderCard card = undefined
+renderCard card = blank
 
 -- Render alle kaarten.
 renderCards :: [Card] -> Picture
@@ -186,7 +209,7 @@ renderCards = undefined
 
 -- Render het speelveld.
 render :: Board -> Picture
-render board = undefined
+render board = blank
 
 -- Hulpfunctie die nagaat of een bepaalde toets is ingedrukt.
 isKey :: SpecialKey -> Event -> Bool
@@ -195,8 +218,8 @@ isKey _  _                                   = False
 
 -- Handel alle toetsaanslagen af.
 -- Hint: Je kan gebruikmaken van de isKey hulpfunctie.
-handleInput :: Event -> Board -> Board 
-handleInput ev board = undefined
+handleInput :: Event -> Board -> Board
+handleInput ev board = initBoard
 
 -- Startpunt
 main :: IO ()
