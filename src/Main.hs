@@ -107,9 +107,9 @@ match card1 card2 = getColor card1 == getColor card2
 -- een error teruggegeven.
 find :: Coordinate -> [Card] -> Card
 find target cards
-    | length a == 1 =head a
+    | length a == 1 = head a
     | otherwise = error "Card not found"
-    where a = [card | card@(coord,col,stat) <- cards,  coord == target]
+    where a = [card | card@(coord,_,_) <- cards,  coord == target]
 
 -- Geef een permutatie van een gegeven lijst terug.
 -- Hint: Kijk zeker eens naar de System.Random en 
@@ -120,16 +120,16 @@ shuffleList l = shuffle' l (length l) (mkStdGen seed)
 -- Genereer een lijst met n verschillende kleuren.
 -- Hint: Je kan gebruikmaken van de generateColor-functie.
 generateColors :: Int -> [Color]
-generateColors n = [generateColor i| i <- take n (randomRs (0, 360) (mkStdGen seed))]
+generateColors n = [generateColor (fromIntegral i)| i <- [0,(div 360 n)..360]]
 
 -- Genereer een lijst van n kaarten (n/2 kleurenparen).
 --TODO: coordinaten moeten nog mooi ingevuld worden na shuffle
 generateShuffledCards :: Int -> [Card]
-generateShuffledCards n = shuffleList [((0,0), generateColors (div n 2) !! div i 2, Hidden) |i<-[0..n-1]]
+generateShuffledCards n = shuffleList [(coords !! i, generateColors (div n 2) !! div i 2, Hidden) |i<-[0..n-1]]
+    where coords =  [(x,y) | x <- [0..width-1],y <- [0..height-1]]
 
 -- Controleer of een positie op het spelbord een kaart bevat.
 hasCard :: Coordinate -> Bool
---check if cards initBoard contains a card on the given coordinate
 hasCard (x,y) = (x,y) `elem` [coord | (coord,_,_) <- cards initBoard]
 
 -- Controleer of de selector vanaf een gegeven locatie in een 
@@ -139,9 +139,11 @@ canMove coord direction =hasCard (addcoord coord direction)
 
 -- Beweeg de selector in een gegeven richting.
 move :: Board -> Direction -> Board
-move board direction = board {selector = addcoord direction (selector board) }
+move board direction
+    | canMove (selector board) direction = board {selector = addcoord direction (selector board) }
+    | otherwise  = board
 
---functie die coordinaten samenvoegt of 
+--functie die coordinaten samenvoegt of richtingen
 addcoord :: Coordinate -> Coordinate -> Coordinate
 addcoord (cx1,cy1) (cx2,cy2)=(cx1 + cx2, cy1 + cy2)
 
@@ -189,11 +191,13 @@ nextBoard b@Board{ turned = [c1, c2] }
 -- Zet een positie op het bord om naar een positie op het scherm.
 -- Hint: hou zeker rekening met het coordinatensysteem van Gloss.
 convert :: Int -> Int -> Float
-convert location axis =  fromIntegral location * (fromIntegral axis / fromIntegral amountOfCards) + (fromIntegral (2*cardInset + scaling)/2)
+convert location axis = fromIntegral((location - div axis 2) * (scaling + 10))
+
+
 
 -- Render een vierkant met een gegeven kleur en grootte.
 renderColoredSquare :: Int -> Color -> Picture
-renderColoredSquare size c = undefined
+renderColoredSquare size c = color c (rectangleSolid (fromIntegral size) (fromIntegral size))
 
 -- Render de selector.
 renderSelector :: Coordinate -> Picture
@@ -201,15 +205,15 @@ renderSelector coord = blank
 
 -- Render een kaart.
 renderCard :: Card -> Picture
-renderCard card = blank
+renderCard card = translate (convert (fst (getCoord card)) width) (convert (snd (getCoord card)) height) (renderColoredSquare scaling (getColor card))
 
 -- Render alle kaarten.
 renderCards :: [Card] -> Picture
-renderCards = undefined
+renderCards cards = pictures (map renderCard cards)
 
 -- Render het speelveld.
 render :: Board -> Picture
-render board = blank
+render board = renderCards (cards board)
 
 -- Hulpfunctie die nagaat of een bepaalde toets is ingedrukt.
 isKey :: SpecialKey -> Event -> Bool
