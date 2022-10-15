@@ -209,7 +209,7 @@ renderSelector coord = translate (convert (fst coord) width) (-convert (snd coor
 -- Render een kaart. if hidden -> grey
 renderCard :: Card -> Picture
 renderCard card
-    | getStatus card== Hidden = translate ( convert (fst (getCoord card)) width) (- convert (snd (getCoord card))  height) (renderColoredSquare scaling (greyN 0.25))
+    | getStatus card== Hidden = translate ( convert (fst (getCoord card)) width) (- convert (snd (getCoord card))  height) (renderColoredSquare scaling (greyN 0.65))
     |otherwise =translate ( convert (fst (getCoord card)) width) (- convert (snd (getCoord card))  height) (renderColoredSquare scaling (getColor card))
 
 -- Render alle kaarten.
