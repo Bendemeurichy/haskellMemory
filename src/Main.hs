@@ -197,6 +197,7 @@ nextBoard b@Board{ turned = [c1, c2] }
 convert :: Int -> Int -> Float
 convert location axis = fromIntegral (scaling + cardInset) * ( fromIntegral (location + 1)- (fromIntegral (axis+1) / 2))
 
+-- y as is gedraaid in renders zodat leeg vakje rechtsonder zit
 -- Render een vierkant met een gegeven kleur en grootte.
 renderColoredSquare :: Int -> Color -> Picture
 renderColoredSquare size c = color c (rectangleSolid (fromIntegral size) (fromIntegral size))
@@ -215,7 +216,7 @@ renderCard card
 renderCards :: [Card] -> Picture
 renderCards cards = pictures (map renderCard cards)
 
--- Render het speelveld.
+-- Render het speelveld. render eerst selector, dan kaarten
 render :: Board -> Picture
 render board = pictures [renderSelector (selector board), renderCards (cards board)]
 
