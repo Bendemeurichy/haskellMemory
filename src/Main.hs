@@ -92,11 +92,13 @@ initBoard = Board {
 ----------------------------------------------------------------------
 
 -- De mogelijke richtingen van de selector.
+-- up and down zijn omgewisseld van het normale omdat de y-as is omgedraaid 
+-- zodat als er een oneven speelveld is de lege kaart rechts onder zit
 left, right, up, down :: Direction
 left  = (-1, 0)
 right = (1, 0)
-up    = (0, 1)
-down  = (0, -1)
+up    = (0, -1)
+down  = (0, 1)
 
 -- Controleer of twee kaarten dezelfde kleur hebben.
 match :: Card -> Card -> Bool
@@ -125,8 +127,10 @@ generateColors n = [generateColor (fromIntegral i)| i <- [0,(div 360 n)..360]]
 -- Genereer een lijst van n kaarten (n/2 kleurenparen).
 --TODO: coordinaten moeten nog mooi ingevuld worden na shuffle
 generateShuffledCards :: Int -> [Card]
-generateShuffledCards n = shuffleList [(coords !! i, generateColors (div n 2) !! div i 2, Hidden) |i<-[0..n-1]]
-    where coords =  [(x,y) | x <- [0..width-1],y <- [0..height-1]]
+generateShuffledCards n =
+    let coords = [(x, y) | x <- [0 .. width - 1], y <- [0 .. height - 1]]
+        cardlist = shuffleList [(generateColors (div n 2) !! div i 2, Hidden) | i <- [0 .. n - 1]] in
+        [(coords !! j , fst (cardlist !! j ), snd (cardlist !! j)) | j <- [0 .. n - 1]]
 
 -- Controleer of een positie op het spelbord een kaart bevat.
 hasCard :: Coordinate -> Bool
@@ -170,7 +174,7 @@ hideCard target = map (changeCard target Hidden)
 -- als deze nog niet eerder werd omgedraaid.
 flipCard :: Coordinate -> Board -> Board
 flipCard target board
-    | target `elem` [coord | (coord,_,_) <- turned board]  = board
+    | target `elem` [coord | (coord,_,_) <- turned board] || getStatus (find target (cards board)) == Shown  = board
     | otherwise = board {cards = showCard target (cards board), turned = turned board ++ [find target (cards board)]}
 
 -- Reset de laatste omgedraaide kaarten terug naar de `Hidden` status.
@@ -182,18 +186,16 @@ resetTurned board =let last2= drop (length(turned board) -2) (turned board) in
 -- Bereken het volgende bord op basis van de omgedraaide kaarten.
 -- Hint: We hebben de drie gevallen voor deze functie al voorzien.
 nextBoard :: Board -> Board
-nextBoard b@Board{ turned = [] }         = b
-nextBoard b@Board{ turned = [c1] }       = b
+nextBoard b@Board{ turned = [] }         = flipCard (selector b) b
+nextBoard b@Board{ turned = [c1] }       = flipCard (selector b) b
 nextBoard b@Board{ turned = [c1, c2] }
-                    | c1 `match` c2 = b{turned = []}
-                    | otherwise = resetTurned b
+                    | c1 `match` c2 = flipCard (selector b) (b{turned = []})
+                    | otherwise = flipCard (selector b) (resetTurned b)
 
 -- Zet een positie op het bord om naar een positie op het scherm.
 -- Hint: hou zeker rekening met het coordinatensysteem van Gloss.
 convert :: Int -> Int -> Float
-convert location axis = fromIntegral((location - div axis 2) * (scaling + 10))
-
-
+convert location axis = fromIntegral (scaling + cardInset) * ( fromIntegral (location + 1)- (fromIntegral (axis+1) / 2))
 
 -- Render een vierkant met een gegeven kleur en grootte.
 renderColoredSquare :: Int -> Color -> Picture
@@ -201,11 +203,13 @@ renderColoredSquare size c = color c (rectangleSolid (fromIntegral size) (fromIn
 
 -- Render de selector.
 renderSelector :: Coordinate -> Picture
-renderSelector coord = blank
+renderSelector coord = translate (convert (fst coord) width) (-convert (snd coord) height) (rectangleSolid (fromIntegral (scaling+cardInset)) (fromIntegral (scaling+cardInset)) )
 
--- Render een kaart.
+-- Render een kaart. if hidden -> grey
 renderCard :: Card -> Picture
-renderCard card = translate (convert (fst (getCoord card)) width) (convert (snd (getCoord card)) height) (renderColoredSquare scaling (getColor card))
+renderCard card
+    | getStatus card== Hidden = translate ( convert (fst (getCoord card)) width) (- convert (snd (getCoord card))  height) (renderColoredSquare scaling (greyN 0.25))
+    |otherwise =translate ( convert (fst (getCoord card)) width) (- convert (snd (getCoord card))  height) (renderColoredSquare scaling (getColor card))
 
 -- Render alle kaarten.
 renderCards :: [Card] -> Picture
@@ -213,7 +217,8 @@ renderCards cards = pictures (map renderCard cards)
 
 -- Render het speelveld.
 render :: Board -> Picture
-render board = renderCards (cards board)
+render board = pictures [renderSelector (selector board), renderCards (cards board)]
+
 
 -- Hulpfunctie die nagaat of een bepaalde toets is ingedrukt.
 isKey :: SpecialKey -> Event -> Bool
@@ -223,7 +228,13 @@ isKey _  _                                   = False
 -- Handel alle toetsaanslagen af.
 -- Hint: Je kan gebruikmaken van de isKey hulpfunctie.
 handleInput :: Event -> Board -> Board
-handleInput ev board = initBoard
+handleInput ev board
+    | isKey KeyUp ev = move board up
+    | isKey KeyDown ev = move board down
+    | isKey KeyLeft ev = move board left
+    | isKey KeyRight ev = move board right
+    | isKey KeyEnter ev = nextBoard board
+    | otherwise = board
 
 -- Startpunt
 main :: IO ()
