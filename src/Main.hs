@@ -20,6 +20,7 @@ type Coordinate = (Int, Int)
 -- een kleur en een positie.
 type Card = ( Coordinate, Color, CardStatus)
 
+--3 hulpfuncties om attributen van een kaart makkelijk op te vragen
 getCoord :: Card -> Coordinate
 getCoord (c,_,_) = c
 
@@ -134,7 +135,7 @@ generateShuffledCards n =
 
 -- Controleer of een positie op het spelbord een kaart bevat.
 hasCard :: Coordinate -> Bool
-hasCard (x,y) = (x,y) `elem` [coord | (coord,_,_) <- cards initBoard]
+hasCard c = c `elem` [coord | (coord,_,_) <- cards initBoard]
 
 -- Controleer of de selector vanaf een gegeven locatie in een 
 -- gegeven richting kan bewegen.
@@ -147,7 +148,7 @@ move board direction
     | canMove (selector board) direction = board {selector = addcoord direction (selector board) }
     | otherwise  = board
 
---functie die coordinaten samenvoegt of richtingen
+--hulpfunctie die coordinaten samenvoegt of richtingen
 addcoord :: Coordinate -> Coordinate -> Coordinate
 addcoord (cx1,cy1) (cx2,cy2)=(cx1 + cx2, cy1 + cy2)
 
@@ -185,6 +186,7 @@ resetTurned board =let last2= drop (length(turned board) -2) (turned board) in
 
 -- Bereken het volgende bord op basis van de omgedraaide kaarten.
 -- Hint: We hebben de drie gevallen voor deze functie al voorzien.
+-- als er 2 foute worden gekozen draaien deze terug om als er een andere kaart (of een van de kaarten opnieuw) wordt aangeduid
 nextBoard :: Board -> Board
 nextBoard b@Board{ turned = [] }         = flipCard (selector b) b
 nextBoard b@Board{ turned = [c1] }       = flipCard (selector b) b
@@ -194,6 +196,7 @@ nextBoard b@Board{ turned = [c1, c2] }
 
 -- Zet een positie op het bord om naar een positie op het scherm.
 -- Hint: hou zeker rekening met het coordinatensysteem van Gloss.
+-- Geen gebruik van gehele deling zodat bord gecentreerd is
 convert :: Int -> Int -> Float
 convert location axis = fromIntegral (scaling + cardInset) * ( fromIntegral (location + 1)- (fromIntegral (axis+1) / 2))
 
