@@ -42,7 +42,7 @@ data Board = Board {
 
 -- Aantal kaarten op de x-as.
 width :: Int
-width = 3
+width = 4
 
 -- Aantal kaarten op de y-as.
 height :: Int
