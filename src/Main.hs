@@ -180,8 +180,7 @@ flipCard target board
 
 -- Reset de laatste omgedraaide kaarten terug naar de `Hidden` status.
 resetTurned :: Board -> Board
-resetTurned board =let last2= drop (length(turned board) -2) (turned board) in
-    board{cards = hideCard (getCoord (last last2)) (hideCard (getCoord (head last2)) (cards board)) ,
+resetTurned board = board{cards = hideCard (getCoord (last (turned board))) (hideCard (getCoord (head (turned board))) (cards board)) ,
     turned= []}
 
 -- Bereken het volgende bord op basis van de omgedraaide kaarten.
