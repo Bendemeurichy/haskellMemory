@@ -198,7 +198,7 @@ nextBoard b@Board{ turned = [c1, c2] }
 -- Hint: hou zeker rekening met het coordinatensysteem van Gloss.
 -- Geen gebruik van gehele deling zodat bord gecentreerd is
 convert :: Int -> Int -> Float
-convert location axis = fromIntegral (scaling + cardInset) * ( fromIntegral (location + 1)- (fromIntegral (axis+1) / 2))
+convert location axis = fromIntegral (scaling + cardInset) * ( fromIntegral (location + 1) - (fromIntegral (axis + 1) / 2))
 
 -- y as is gedraaid in renders zodat leeg vakje rechtsonder zit
 -- Render een vierkant met een gegeven kleur en grootte.
